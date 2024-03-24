@@ -9,7 +9,7 @@ WORK_DIR='/etc/argox'
 TEMP_DIR='/tmp/argox'
 TLS_SERVER=addons.mozilla.org
 METRICS_PORT='3333'
-CDN_DOMAIN=("cn.azhz.eu.org" "www.who.int" "skk.moe" "time.cloudflare.com" "csgo.com")
+CDN_DOMAIN=(""168.ddkkk.free.hr" cn.azhz.eu.org" "www.who.int" "skk.moe" "time.cloudflare.com" "csgo.com")
 SUBSCRIBE_TEMPLATE="https://raw.githubusercontent.com/fscarmen/client_template/main"
 SUBSCRIBE_API=("bav6.889876.xyz" "api.v1.mk")
 
