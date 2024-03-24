@@ -67,12 +67,16 @@
 * 极速安装，即可交互式安装，也可像 docker compose 一样的非交互式安装，提前把所有的参数放到一个配置文件，全程不到5秒。
 
 
-## ArgoX for VPS 运行脚本:
+## 1、ArgoX for VPS 运行脚本:
 
 ```
 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh)
 ```
+## 2、梭哈模式【自用】 运行脚本:
 
+```
+curl https://raw.githubusercontent.com/wszx123/ArgoX/main/suoha.sh -o suoha.sh && bash suoha.sh
+```
   | Option 参数 | Remark 备注 |
   | -----------| ------ |
   | -c         | Chinese 中文 |
