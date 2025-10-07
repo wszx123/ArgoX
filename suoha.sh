@@ -204,11 +204,11 @@ then
 	echo -e '\n'端口 443 可改为 2053 2083 2087 2096 8443'\n' >> v2ray.txt
 	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$argo'&path='$urlpath'#VLESS-SUOHA-ws02' >> v2ray.txt
 	echo -e '\n'端口 2052 可改为 8080 8880 2052 2082 2086 2095 >> v2ray.txt
-    echo -e "${GREEN}#############################################################${NC}"
 fi
 rm -rf argo.log
 cat v2ray.txt
 echo -e '\n'信息已经保存在 v2ray.txt,再次查看请运行 cat v2ray.txt
+    echo -e "${GREEN}#############################################################${NC}"
 }
 
 function installtunnel(){
@@ -646,12 +646,12 @@ echo 将已经绑定的系统目录下的 /root/.cloudflared 文件夹以及内�
 echo 拷贝至新系统下同样的目录,会自动跳过登录验证
 
 echo -e '\n'梭哈是一种智慧!!!梭哈!梭哈!梭哈!梭哈!梭哈!梭哈!梭哈...'\n'
-echo -e "${GREEN}----------------------------------------${NC}"
+echo -e "${GREEN}--------------------${NC}"
 echo 1.梭哈模式【自用】
 echo 2.安装服务
 echo 3.卸载服务
 echo 4.清空缓存
-echo -e "${GREEN}----------------------------------------${NC}"
+echo -e "${GREEN}--------------------${NC}"
 echo -e 0.退出脚本'\n'
 read -p "请选择模式(默认1):" mode
 if [ -z "$mode" ]
