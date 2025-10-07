@@ -193,9 +193,9 @@ fi
 if [ $protocol == 2 ]
 then
 	echo -e vless链接已经生成, freeyx.cloudflare88.eu.org 可替换为CF优选IP'\n' > v2ray.txt
-	echo 'vless://'$uuid'@freeyx.cloudflare88.eu.org:443?encryption=none&security=tls&type=ws&host='$argo'&path='$urlpath'#'$(echo $isp | sed -e 's/_/%20/g' -e 's/,/%2C/g')'_tls' >> v2ray.txt
+	echo 'vless://'$uuid'@freeyx.cloudflare88.eu.org:443?encryption=none&security=tls&type=ws&host='$argo'&path='$urlpath'#VLESS-SUOHA-ws01' >> v2ray.txt
 	echo -e '\n'端口 443 可改为 2053 2083 2087 2096 8443'\n' >> v2ray.txt
-	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$argo'&path='$urlpath'#'$(echo $isp | sed -e 's/_/%20/g' -e 's/,/%2C/g')'' >> v2ray.txt
+	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$argo'&path='$urlpath'#VLESS-SUOHA-ws02' >> v2ray.txt
 	echo -e '\n'端口 2052 可改为 8080 8880 2052 2082 2086 2095 >> v2ray.txt
 fi
 rm -rf argo.log
@@ -367,9 +367,9 @@ fi
 if [ $protocol == 2 ]
 then
 	echo -e vless链接已经生成, freeyx.cloudflare88.eu.org 可替换为CF优选IP'\n' >/opt/suoha/v2ray.txt
-	echo 'vless://'$uuid'@freeyx.cloudflare88.eu.org:443?encryption=none&security=tls&type=ws&host='$domain'&path='$urlpath'#'$(echo $isp | sed -e 's/_/%20/g' -e 's/,/%2C/g')'_tls' >>/opt/suoha/v2ray.txt
+	echo 'vless://'$uuid'@freeyx.cloudflare88.eu.org:443?encryption=none&security=tls&type=ws&host='$domain'&path='$urlpath'#VLESS-SUOHA-ws01' >>/opt/suoha/v2ray.txt
 	echo -e '\n'端口 443 可改为 2053 2083 2087 2096 8443'\n' >>/opt/suoha/v2ray.txt
-	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$domain'&path='$urlpath'#'$(echo $isp | sed -e 's/_/%20/g' -e 's/,/%2C/g')'' >>/opt/suoha/v2ray.txt
+	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$domain'&path='$urlpath'#VLESS-SUOHA-ws02' >>/opt/suoha/v2ray.txt
 	echo -e '\n'端口 2052 可改为 8080 8880 2052 2082 2086 2095'\n' >>/opt/suoha/v2ray.txt
 	echo 注意:如果 80 8080 8880 2052 2082 2086 2095 端口无法正常使用 >>/opt/suoha/v2ray.txt
 	echo 请前往 https://dash.cloudflare.com/ >>/opt/suoha/v2ray.txt
@@ -757,4 +757,3 @@ else
 	echo 退出成功
 	exit
 fi
-
