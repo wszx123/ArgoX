@@ -198,8 +198,8 @@ then
 fi
 if [ $protocol == 2 ]
 then
-	echo -e vless链接已经生成, freeyx.cloudflare88.eu.org 可替换为CF优选IP'\n' > v2ray.txt
     echo -e "${GREEN}#############################################################${NC}"
+	echo -e vless链接已经生成, freeyx.cloudflare88.eu.org 可替换为CF优选IP'\n' > v2ray.txt
 	echo 'vless://'$uuid'@freeyx.cloudflare88.eu.org:443?encryption=none&security=tls&type=ws&host='$argo'&path='$urlpath'#VLESS-SUOHA-ws01' >> v2ray.txt
 	echo -e '\n'端口 443 可改为 2053 2083 2087 2096 8443'\n' >> v2ray.txt
 	echo 'vless://'$uuid'@cloudflare.182682.xyz:2052?encryption=none&security=none&type=ws&host='$argo'&path='$urlpath'#VLESS-SUOHA-ws02' >> v2ray.txt
@@ -646,12 +646,12 @@ echo 将已经绑定的系统目录下的 /root/.cloudflared 文件夹以及内�
 echo 拷贝至新系统下同样的目录,会自动跳过登录验证
 
 echo -e '\n'梭哈是一种智慧!!!梭哈!梭哈!梭哈!梭哈!梭哈!梭哈!梭哈...'\n'
-echo -e "${GREEN}#############################################################${NC}"
+echo -e "${GREEN}----------------------------------------${NC}"
 echo 1.梭哈模式【自用】
 echo 2.安装服务
 echo 3.卸载服务
 echo 4.清空缓存
-echo -e "${GREEN}#############################################################${NC}"
+echo -e "${GREEN}----------------------------------------${NC}"
 echo -e 0.退出脚本'\n'
 read -p "请选择模式(默认1):" mode
 if [ -z "$mode" ]
