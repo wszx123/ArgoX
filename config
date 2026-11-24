@@ -1,19 +1,163 @@
-# Language
-L='C' # C for Chinese / E for English
+# ============================================================
+# ArgoX 非交互安装配置文件 / Non-interactive install config
+# ============================================================
+# 使用方法 / Usage:
+#   bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) -f config.conf
+#
+# 说明 / Notes:
+#   - 留空的变量将使用脚本默认值 / Empty variables fall back to script defaults
+#   - 极速模式 (-k/-l) 会忽略本文件，所有参数自动生成
+#     Quick mode (-k/-l) ignores this file; all params are auto-generated
+# ============================================================
 
-# VPS ip
-SERVER_IP=''
 
-# Argo
+# ── 语言 / Language ──────────────────────────────────────────
+# C = 中文 / Chinese，E = 英文 / English
+# 留空默认英文 / Default is English if empty
+LANGUAGE=''
+
+
+# ── 协议选择 / Protocol selection ────────────────────────────
+# 字母组合，顺序无关，留空或 a = 全部安装
+# Letter combination, order-insensitive; empty or a = install all
+#
+#   b = VLESS + Reality Vision
+#   c = Hysteria2
+#   d = VLESS + Reality gRPC
+#   e = VLESS + WS
+#   f = VMess + WS
+#   g = Trojan + WS
+#   h = Shadowsocks + WS
+#   i = VLESS + XHTTP  （临时隧道不支持 / not supported on quick tunnel）
+#   j = VLESS + XHTTP HTTP/2 Reality
+#   k = VLESS + XHTTP Direct
+#   l = Trojan Direct
+#   m = Shadowsocks 2022 Direct
+#
+# 示例 / Examples:
+#   INSTALL_PROTOCOLS='bcefl'  # 只装 Reality Vision + Hysteria2 + VLESS-WS + VMess-WS + Trojan Direct
+#   INSTALL_PROTOCOLS='klm'    # 只装三种直连协议（XHTTP Direct + Trojan Direct + SS2022 Direct）
+#   INSTALL_PROTOCOLS='a'      # 全部
+#   INSTALL_PROTOCOLS=''       # 全部（默认）
+INSTALL_PROTOCOLS=''
+
+
+# ── Argo 隧道 / Argo Tunnel ───────────────────────────────────
+# Argo 域名 / Argo domain
+# 留空则使用临时隧道 / Use temporary tunnel if empty
+# 例如 / e.g.: ARGO_DOMAIN='argo.example.com'
 ARGO_DOMAIN=''
-# For example: ARGO_DOMAIN='argo.xray.com'
-ARGO_AUTH=''
-# For example - Json : ARGO_AUTH='{"AccountTag":"9cc9e3e4dag29d2a02e297f14f20513a","TunnelSecret":"vRzeQmSagqjCoQ0mzvl0qDR8dVROE889m0TnbZhJKHs=","TunnelID":"acd8c712-b088-4660-8187-e69abfa38443"}'
-# Token: ARGO_AUTH='eyJhIjoiOWNjOWUzZTRkOGYyOWQyYTAyZTI5N2YxNagyFzUxM2EiLCJ0IjoiYTcyMmUwNjYtODlmYi00ZjJmLTgagDQtOGEwOTVhNTkzM2I2IiwicyI6Ik9XTTFaak0xWWprdE16QTRNQzAwTUdVMExUbGlaV0V0TmpFek9UZzFNRGczWkdRNCJ9'
 
-# Xray
-SERVER='icook.hk'
-UUID='ffffffff-ffff-ffff-ffff-ffffffffffff'
-WS_PATH='argox'
-REALITY_PRIVATE='iFgLurn7LeLvfKLAjn41R7_OISJ0-fDOZvoBMGcnvVU'
-REALITY_PUBLIC='SpFP6OlOOTkBnwOyBwzJT5I7oCIrCtGxU7pHK_qMJwA'
+
+# ── Argo 认证信息 / Argo auth ─────────────────────────────────
+# 三选一 / one of three formats:
+#
+# [Token 格式 / Token format]:
+#   ARGO_AUTH='eyJhIjoiOWNjO...'
+#
+# [Json 格式 / Json format]:
+#   ARGO_AUTH='{"AccountTag":"...","TunnelSecret":"...","TunnelID":"..."}'
+#
+# [API 令牌格式 / API token format - 40位 / 40 chars]:
+#   ARGO_AUTH='01ab23cd45ef6789ghij0123klmnopqrs456tuvw'
+#
+# 留空则使用临时隧道 / Use temporary tunnel if empty
+ARGO_AUTH=''
+
+
+# ── 订阅功能 / Subscription ─────────────────────────────────────
+# 三值：true=启用（留空默认），false=禁用，dynamic=启用并安装后立即开启动态订阅
+# Values: true=on (empty default), false=off, dynamic=on AND enable dynamic subscription right after install
+# 别名 / Aliases: y/yes/1 = true，n/no/0 = false（大小写不敏感 / case-insensitive）
+# 显式设置将被尊重，不再被安装流程覆盖 / Explicit values are respected and never overridden
+# dynamic 失败时不阻塞安装，仅警告；false 时 dynamic 语义无效
+# 'dynamic' failure never blocks install (warning only); ignored when subscription is off
+# 禁用后不会生成订阅链接和二维码，但 WS/XHTTP 协议仍会安装 nginx
+# When disabled, no subscription URLs or QR codes are generated; nginx is still installed for WS/XHTTP reverse proxy
+SUBSCRIBE=''
+
+
+# ── Argo 隧道开关 / Argo Tunnel toggle ─────────────────────────
+# 是否启用 Argo 隧道：true/y/yes/1=启用，false/n/no/0=禁用（大小写不敏感）
+# Enable Argo tunnel: true/y/yes/1=on, false/n/no/0=off (case-insensitive)
+# 显式设置将被尊重；留空自动推导（有 WS/XHTTP 协议则启用，否则禁用）
+# Explicit values are respected; leave empty for auto-derivation (enabled if WS/XHTTP protocols exist)
+# 启用条件：至少安装了 WS/XHTTP 协议（efghi）
+# 启用后会安装 cloudflared，nginx 也同时安装
+# Active when: at least one WS/XHTTP protocol (efghi) is installed
+# Enables cloudflared and nginx installation
+ARGO=''
+
+
+# ── 端口 / Ports ──────────────────────────────────────────────
+# WS/XHTTP 协议内部起始端口（各协议在此基础上顺数）
+# Starting port for WS/XHTTP protocols (each proto = start + offset)
+# 范围 / Range: 100–65520，默认 / Default: 30000
+# 留空使用默认值 / Leave empty for default
+START_PORT=''
+
+
+# ── Nginx 端口 / Nginx port ──────────────────────────────────
+# Nginx 对外端口（cloudflared 指向此处）/ Nginx external port (cloudflared points here)
+# 范围 / Range: 100–65520，默认 / Default: 8080
+# 仅安装 WS/XHTTP 协议时生效 / Only relevant when WS/XHTTP protocols are installed
+NGINX_PORT=''
+
+
+# ── Reality 配置 / Reality configuration ─────────────────────
+# Reality 私钥 / Reality private key
+# 留空则随机生成 / Random generation if empty
+REALITY_PRIVATE=''
+
+
+# ── SNI / TLS 域名 / SNI / TLS domain ────────────────────────
+# Reality、Hysteria2、Trojan Direct 共用 / shared by Reality, Hysteria2 and Trojan Direct
+# SNI / TLS server name (shared by Reality, Hysteria2 and Trojan Direct)
+# 默认 / Default: addons.mozilla.org
+TLS_SERVER=''
+
+
+# ── Hysteria2 Realm / Hysteria2 Realm ─────────────────────────
+# 是否启用 Hysteria2 Realm（回国/无公网入口场景）：true/y/yes/1=启用，false/n/no/0=禁用（默认，大小写不敏感）
+# Enable Hysteria2 Realm (for NAT / no public inbound): true/y/yes/1=on, false/n/no/0=off (default, case-insensitive)
+# 注意：与端口跳跃互斥，同时填写时 Realm 优先
+# Note: mutually exclusive with port hopping; Realm wins if both are set
+HY2_REALM=''
+
+
+# ── Hysteria2 端口跳跃 / Hysteria2 port hopping ───────────────
+# 格式 / Format: 起始:结束 / start:end，例如 / e.g. 50000:51000
+# 范围 / Range: 10000–65535
+# 留空则禁用端口跳跃 / Leave empty to disable port hopping
+PORT_HOPPING_RANGE=''
+
+
+# ── WS/XHTTP 优选域名 / Preferred CDN domain ─────────────────
+# 填入 CDN 优选域名或 IP / Preferred CDN domain or IP for WS/XHTTP over CDN
+# 留空则使用脚本内置第一个 CDN / Default: first CDN in script list (skk.moe)
+SERVER=''
+
+
+# ── Xray 通用参数 / Xray common parameters ────────────────────
+# ── UUID ─────────────────────────────────────────────────────
+# 用户 UUID / User UUID
+# 留空则随机生成 / Random generation if empty
+UUID=''
+
+
+# ── WebSocket / XHTTP 路径 / WebSocket / XHTTP path ─────────
+# 仅支持字母、数字、- _ . @ / Only letters, numbers, - _ . @
+# 留空则默认 argox / Default: argox
+WS_PATH=''
+
+
+# ── 节点名称 / Node name ─────────────────────────────────────
+# 留空则默认使用 VPS hostname / Default: VPS hostname
+NODE_NAME=''
+
+
+# ── 服务器 IP / Server IP ─────────────────────────────────────
+# 支持 IPv4 或 IPv6 / Supports IPv4 or IPv6
+# 留空则自动检测 / Auto-detected if empty
+# 例如 / e.g.: SERVER_IP='1.2.3.4' 或 SERVER_IP='2001:db8::1'
+SERVER_IP=''
