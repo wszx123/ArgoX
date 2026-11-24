@@ -1,95 +1,352 @@
 # 【ArgoX】 = Argo + Xray
 
+中文 | [English](README_EN.md)
+
 * * *
 
 # 目录
 
 - [更新信息](README.md#更新信息)
 - [项目特点](README.md#项目特点)
-- [ArgoX for VPS 运行脚本](README.md#argox-for-vps-运行脚本)
+  - [架构与安全](README.md#一架构与安全)
+  - [协议矩阵](README.md#二协议矩阵12-选-n)
+  - [精细化控制](README.md#三精细化控制)
+  - [订阅与客户端](README.md#四订阅与客户端)
+  - [安装与运维](README.md#五安装与运维)
+- [交互式运行脚本](README.md#交互式运行脚本)
+  - [交互输入快捷键](README.md#交互输入快捷键)
+- [无交互极速安装](README.md#无交互极速安装)
 - [Argo Json 的获取](README.md#argo-json-的获取)
 - [Argo Token 的获取](README.md#argo-token-的获取)
+- [使用 Cloudflare API 自动创建 Argo](README.md#使用-cloudflare-api-自动创建-argo)
 - [各种场景下 xray outbound 和 routing 模板的说明](README.md#各种场景下-xray-outbound-和-routing-模板的说明)
 - [主体目录文件及说明](README.md#主体目录文件及说明)
+- [感谢赞助商](README.md#感谢赞助商)
 - [免责声明](README.md#免责声明)
 
 * * *
 ## 更新信息
-2024.3.24 v1.6.3 1. Compatible with CentOS 7,8,9; 2. Remove default Github CDN; 1. 适配 CentOS 7,8,9; 2. 去掉默认的 Github 加速网
+2026.11.18 v2.2.2 1. 新增动态订阅（按请求 Host 实时渲染）：安装后功能，需先完成新安装并开启订阅，再通过 `argox -d` 添加；直连节点 server 跟随访问地址（IPv4/IPv6/域名/固定隧道），适配多 IP 机器与 IPv6 地址池，WS/CDN/Argo 节点保持原地址不变；独立开关，关闭后普通订阅照常可用; 2. 新增 `--SUBSCRIBE` 安装传参（三值：`true`=开启订阅（默认）、`false`=关闭、`dynamic`=开启订阅并安装后立即开启动态订阅），`-f` 配置文件中 `SUBSCRIBE` 同效
 
-2024.3.13 v1.6.2 1. Subscription made optional, no nginx and qrcode installed if not needed; 2. Use native IP if it supports unlocking chatGPT, otherwise use warp chained proxy unlocking; 1. 在线订阅改为可选项，如不需要，不安装 nginx 和 qrcode; 2. 如自身支持解锁 chatGPT，则使用原生 IP，否则使用 warp 链式代理解锁
+2026.10.31 v2.2.1 Hysteria2 流量不再使用 WARP 出站，存量 Hysteria2 专属 WARP 路由自动清理；Hysteria2 Realm 功能保持不变
 
-2024.3.10 v1.6.1 1. To protect node data security, use fake information to fetch subscribe api; 2. Adaptive the above clients. https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\>; 1. 为保护节点数据安全，在 api 转订阅时，使用虚假信息; 2. 自适应以上的客户端，https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\>
+2026.10.30 v2.2.0 WARP 出站由 WireGuard（UDP）切换为 MASQUE（H2/TCP 443，CONNECT-IP），存量 wireguard 出站配置在更新到内核为 26.10.21 之后自动迁移为 MASQUE
 
 <details>
     <summary>历史更新 history（点击即可展开或收起）</summary>
 <br>
 
->2024.3.2 v1.6 1. Support V2rayN / Nekobox / Clash / sing-box / Shadowrocket subscribe. https://\<argo tunnel url\>/\<uuid\>/\<base64 | clash | sing-box-pc | sing-box-phone | proxies | qr\>. Index of all subscribes: https://\<argo tunnel url\>/\<uuid\>/  ; Reinstall is required; 2. Adaptive the above clients. https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\> ; 1. 增加 V2rayN / Nekobox / Clash / sing-box / Shadowrocket 订阅，https://\<argo tunnel url\>/\<uuid\>/\<base64 | clash | sing-box-pc | sing-box-phone | proxies | qr\>， 所有订阅的索引: https://\<argo tunnel url\>/\<uuid\>/，需要重新安装; 2. 自适应以上的客户端，https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\>
+>2026.10.22 v2.1.9 加固 `argox -v` 升级流程：仅在已安装 Argo 时检测 `cloudflared` 版本并放宽超时；升级 `xray` 前先备份旧版本，新版本启动失败时自动恢复；升级临时隧道后刷新隧道域名与节点信息
 >
->2024.2.6 V1.5 Argo run protocol uses default instead of http2. The default value is auto, what will automatically configure the quic protocol. If cloudflared is unable to establish UDP connections, it will fallback to using the http2 protocol; Argo 运行的协议使用默认值，而不是 http2。默认值为 auto，将自动配置 quic 协议。如果 cloudflared 无法建立 UDP 连接，它将回落到使用 http2 协议。
+>2026.10.13 v2.1.8 1. 修复入站放行规则被追加到 `INPUT` 链已有的 `REJECT`/`DROP` 规则之后，导致甲骨文 OCI、OpenVZ 等镜像上节点端口与 `nginx` 端口无法访问的问题；放行规则现改为插入到第一条 `REJECT`/`DROP` 规则之前 [https://github.com/fscarmen/sing-box/issues/353](https://github.com/fscarmen/sing-box/issues/353); 2. 修复检测 `xray` 更新时偶尔取不到最新版本号、导致安装或升级中断的问题；改为优先从体积很小的 `releases.atom` 获取，GitHub API 作为兜底 [https://github.com/fscarmen/sing-box/issues/355](https://github.com/fscarmen/sing-box/issues/355); 3. 交互输入启用 `readline` 行编辑：方向键移动光标，`Home` / `End` 与 `Ctrl+A` / `Ctrl+E` 跳到行首 / 行尾，`Ctrl+W` 删除光标前一个词，`Ctrl+U` 清空到行首，`Ctrl+K` 删除到行尾，`Ctrl+Y` 撤销上一次删除，`Ctrl+L` 清屏；编辑键不再被当作内容插入输入值 [https://github.com/fscarmen/sing-box/pull/357#issuecomment-6137941771](https://github.com/fscarmen/sing-box/pull/357#issuecomment-6137941771); 4. 卸载流程完全离线化：`argox -u` 不再执行 CDN 探测，也不再预下载订阅模板、二进制与 `cloudflared`，GitHub 不可达时也能立即完成卸载 [https://github.com/fscarmen/sing-box/issues/358](https://github.com/fscarmen/sing-box/issues/358); 5. 更换 GitHub 代理与 CDN 加速节点 [https://github.com/fscarmen/sing-box/issues/359](https://github.com/fscarmen/sing-box/issues/359)
 >
->2023.10.25 V1.4 1. Support Reality-Vison and Reality-gRPC, Both are direct connect solutions; 2. Quick-tunnel through the API to check dynamic domain names1; 3. After installing, add [argox] shortcut; 4. Output the configuration for Sing-box Client; 1. 支持 Reality-Vison and Reality-gRPC，两个均为直连方案; 2. 临时隧道通过 API 查动态域名; 3. 安装后，增加 [argox] 的快捷运行方式; 4. 输出 Sing-box Client 的配置
+>2026.10.02 v2.1.7 1. 适配 Xray 26.7.11 移除 VMess none/zero：vmess-ws 链接加密方式改为 auto（Clash/Shadowrocket/v2rayN），Throne 不支持 auto，改为 aes-128-gcm; 2. 自动改写旧订阅文件中的 none/zero（2026年12月31日后移除）; 3. 规范化 Shadowrocket Reality 链接（IPv6 单括号、去掉 auto:/obfs=none、增加 udp=1 与 fingerprint=Chrome140）; 4. 适配 Xray 26.9.8，reality 要求客户端指纹携带 X25519MLKEM768：移除 realitySettings 中的 minClientVer，clash reality-opts 启用 support-x25519mlkem768
 >
->2023.10.16 V1.3 1. Support Alpine; 2. Add Sing-box PID, runtime, and memory usage to the menu; 3. Remove the option of using warp on returning to China; 支持 Alpine; 2. 菜单中增加 sing-box 内存占用显示; 3. 去掉使用 warp 回国的选项
+>2026.09.18 v2.1.6 兼容 Xray 26.9.8：WARP 链式出站由 proxySettings 迁移到 streamSettings.sockopt.dialerProxy
 >
->2023.10.11 V1.2 1. Add the option of blocking on returning to China; 2. Add a number of quality cdn's that are collected online; 3. Use Warp IPv6 to visit chatGPT; 1. 增加禁止归国选项; 2. 增加线上收录的若干优质 cdn 3. 使用 Warp IPv6 访问 chatGPT
+>2026.08.14 v2.1.5 cloudflared 隧道统一使用 HTTP/2 传输
 >
->2023.6.23 V1.1 For better network traffic diversion in various scenarios, split `config.json` into `inbound.json` and `outbound.json`; 为了更好的在各种情景下分流，把 `config.json` 拆分为 `inbound.json` 和 `outbound.json`
+>2026.08.11 v2.1.4 1. 安装期后台预注册 WARP 账户，失败回退共享密钥; 2. [argox -d] 菜单新增「更换 WARP 账户」，支持重新注册 / 手动输入; 3. Hysteria2 Realm 与端口跳跃互斥，安装与 [argox -d] 均先提示确认再切换
+>
+>2026.08.07 v2.1.3 1. [argox -d] 支持为各协议设置独立（非连续）端口，仅在安装后修改，不影响常规安装流程; 2. 服务器地址支持填写 IP 或域名（NAT VPS 公网 IP 易变化时可用 DDNS 域名）
+>
+>2026.08.02 v2.1.2 新增 VLESS + XHTTP HTTP/2 Reality 直连协议（xhttp-h2-reality）
+>
+>2026.07.31 v2.1.1 Xray 实时流量统计 (-n / -r / 主菜单)
+>
+>2026.07.24 v2.1.0 1. nginx/cloudflared 按需安装; 2. Xray API 热加载零中断; 3. -d 菜单订阅开关
+>
+>2026.07.19 v2.0.9 1. 新增长参数半交互安装模，支持 16 个长参数：协议、端口、CDN、UUID、路径、Argo、TLS、Reality、Hysteria2; 2. 适配 Xray v26.7.11，realitySettings 新增 minClientVer 字段
+>
+>2026.07.18 v2.0.8 1. 新增 Hysteria2 Realm 功能，支持 finalmask 配置及 WARP 辅助 NAT 打洞; 2. 新增自定义 WARP 出站路由规则（域名匹配 / geosite + warp-IPv4/warp-IPv6）; 3. 新增绑定网络出口选项，适配多网卡服务器
+>
+>2026.06.04 v2.0.7 1. 使用 Throne 替代 Nekobox 进行客户端输出; 2. 独立生成 v2rayN 配置; 3. 安全升级：移除 insecure=true，启用 TLS 证书指纹校验
+>
+>2026.04.21 v2.0.6 1. 保持 CDN 下的 XHTTP 继续走 Nginx 反代链路，并由 Nginx 负责基于路径的分流; 2. 增加适配 Clash Mihomo 的 XHTTP 客户端输出，在固定隧道下覆盖 HTTP/1.1 CDN 与 HTTP/3 Direct
+>
+>2026.04.18 v2.0.5 1. 将 CDN 下的 XHTTP 从 Nginx 反代链路移出，改为由 cloudflared ingress 直接转发到本地 Xray inbound; 2. 增加适配 Clash Mihomo 的 XHTTP 客户端输出，同时覆盖 HTTP/2 CDN 与 HTTP/3 Direct
+>
+>2026.04.11 v2.0.4 1. 优选地址支持非 443 端口（IPv4 / IPv6 / 域名）; 2. 移除安装前 UFW 强制校验，inactive 自动回退 iptables; 3. 优选地址 / 带宽 / 端口跳跃修改不再重启 xray
+>
+>2026.04.10 v2.0.3 1. 自动检测 UFW 并切换规则管理方式; 2. [argox -d] 支持修改起始端口并自动同步防火墙; 3. 新增 Hysteria2 带宽配置入口
+>
+>2026.04.04 v2.0.2 新增 Trojan Direct 和 Shadowsocks 2022 Direct，并在更换 TLS 域名时同步重新生成自签证书
+>
+>2026.04.01 v2.0.1 新增使用 CDN 的 VLESS/XHTTP 和 XHTTP HTTP/3 直连支持
+>
+>2026.03.30 v2.0.0 将 ArgoX 重构为模块化协议架构，新增 Hysteria2 和 VLESS/XHTTP 支持，实现协议的自定义安装与管理
+>
+>2025.12.15 v1.6.13 Argo 隧道新增通过 API 创建 --- 自动完成：创建隧道 > DNS 配置 > 回源设置。感谢热心网友 [zmlu] 提供的方法: https://raw.githubusercontent.com/zmlu/sba/main/tunnel.sh
+>
+>2025.12.09 v1.6.12 极速安装模式：新增一键安装功能，所有参数自动填充，简化部署流程。中文用户使用 `-l` 或 `-L`，英文用户使用 `-k` 或 `-K`，大小写均支持，操作更灵活
+>
+>2025.11.08 v1.6.11 在 AI 帮助下，完善主流客户端 shadowsocks + v2ray-plugin 的设置与 URI
+>
+>2025.09.01 v1.6.10 1. 适配 xray 25.8.31 reality 公私钥生成方式; 2. 更换 Github 代理
+>
+>2025.04.26 v1.6.9 新增使用 [argox -d] 在线更换 CDN 功能
+>
+>2025.04.25 v1.6.8 1. 更改 GitHub 代理; 2. 处理 CentOS 防火墙端口管理; 3. 优化代码
+>
+>2025.04.21 v1.6.7 在 Alpine 系统中使用 OpenRC 取代兼容 Python3 的 systemctl 实现
+>
+>2024.12.24 v1.6.6 根据 lmc999 的检测解锁脚本，重构了检测 chatGPT 方法
+>
+>2024.5.20 v1.6.5 1. 添加 Github 加速 CDN; 2. 去掉订阅模板2
+>
+>2024.3.26 v1.6.4 感谢 UUb 兄弟的官改编译，依赖 jq, qrencode 从 apt 安装改为下载二进制文件，缩减安装时间约15秒，贯彻项目轻量化的定位，尽最大可能安装最少的系统依赖
+>
+>2024.3.24 v1.6.3 1. 适配 CentOS 7,8,9; 2. 去掉默认的 Github 加速网
+>
+>2024.3.13 v1.6.2 1. 在线订阅改为可选项，如不需要，不安装 nginx 和 qrcode; 2. 如自身支持解锁 chatGPT，则使用原生 IP，否则使用 warp 链式代理解锁
+>
+>2024.3.10 v1.6.1 1. 为保护节点数据安全，在 api 转订阅时，使用虚假信息; 2. 自适应以上的客户端，https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\>
+>
+>2024.3.2 v1.6 1. 增加 V2rayN / Throne / Clash / sing-box / Shadowrocket 订阅，https://\<argo tunnel url\>/\<uuid\>/\<base64 | clash | sing-box-pc | sing-box-phone | proxies | qr\>， 所有订阅的索引: https://\<argo tunnel url\>/\<uuid\>/，需要重新安装; 2. 自适应以上的客户端，https://\<argo tunnel url\>/\<uuid\>/\<auto | auto2\>
+>
+>2024.2.6 V1.5 Argo 运行的协议使用默认值，而不是 http2。默认值为 auto，将自动配置 quic 协议。如果 cloudflared 无法建立 UDP 连接，它将回落到使用 http2 协议。
+>
+>2023.10.25 V1.4 1. 支持 Reality-Vison and Reality-gRPC，两个均为直连方案; 2. 临时隧道通过 API 查动态域名; 3. 安装后，增加 [argox] 的快捷运行方式; 4. 输出 Sing-box Client 的配置
+>
+>2023.10.16 V1.3 1. 支持 Alpine; 2. 菜单中增加 sing-box 内存占用显示; 3. 去掉使用 warp 回国的选项
+>
+>2023.10.11 V1.2 1. 增加禁止归国选项; 2. 增加线上收录的若干优质 cdn 3. 使用 Warp IPv6 访问 chatGPT
+>
+>2023.6.23 V1.1 为了更好的在各种情景下分流，把 `config.json` 拆分为 `inbound.json` 和 `outbound.json`
 >
 >2023.4.13 1.0 正式版
 >
->2023.3.11 beta6 1. Users can easily obtain the JSON of a fixed domain name tunnel through the accompanying function website at https://fscarmen.cloudflare.now.cc ; 2. Change the sensitive path names; 3. Add CDN for download; 1. 用户可以通过配套的功能网轻松获取固定域名隧道的 json, https://fscarmen.cloudflare.now.cc;  2. 改掉敏感路径名; 3. 下载增加 CDN
+>2023.3.11 beta6 1. 用户可以通过配套的功能网轻松获取固定域名隧道的 json, https://fscarmen.cloudflare.now.cc;  2. 改掉敏感路径名; 3. 下载增加 CDN
 >
->2023.3.4 beta5 1. Change listening to all network addresses to only Argo tunnel directed listening for added security; 2. Argo Tunnel supports dualstack; 1. 把对所有的网络地址监听改为只对 Argo 隧道作定向监听，以增加安全性; 2. Argo 隧道支持双栈
+>2023.3.4 beta5 1. 把对所有的网络地址监听改为只对 Argo 隧道作定向监听，以增加安全性; 2. Argo 隧道支持双栈
 >
->2023.3.2 beta4 Change listening to all network addresses to only Argo tunnel directed listening for added security; 把对所有的网络地址监听改为只对 Argo 隧道作定向监听，以增加安全性
+>2023.3.2 beta4 把对所有的网络地址监听改为只对 Argo 隧道作定向监听，以增加安全性
 >
->2023.2.24 beta3 1. Simplify the operation of changing argo tunnel; 2. Use wget global instead of cURL; 1. 简化转换 Argo 隧道的方法; 2. 全局用 wget 替代 cURL
+>2023.2.24 beta3 1. 简化转换 Argo 隧道的方法; 2. 全局用 wget 替代 cURL
 >
->2023.2.17 beta2 1. extremely fast installation mode, [-f] followed by a parameter file path; 2. Support for switching between the three argo tunnels; 3. Synchronise Argo and Xray to the latest version at any time; 4. Optimize the code to achieve speedup.
->1.极速安装模式，[-f] 后带参数文件路径；2.安装后，支持三种argo隧道随意切换；3.随时同步Argo 和 Xray到最新版本；4.优化代码，达到提速的目的。
-</details>
+>2023.2.17 beta2 1.极速安装模式，[-f] 后带参数文件路径；2.安装后，支持三种argo隧道随意切换；3.随时同步Argo 和 Xray到最新版本；4.优化代码，达到提速的目的。
+>
+>2023.2.16 beta1 Argo + Xray for vps
 
-2023.2.16 beta1 Argo + Xray for vps
+</details>
 
 
 ## 项目特点:
 
-* 在 VPS 中部署 Xray，采用的方案为  Argo + Xray + Reality / Argo + Xray + WebSocket + TLS；
-* 正常用 CF 是访问机房回源，Argo 则是每次创建两个反向链接到两个就近机房，然后回源是通过源服务器就近机房回源，其中用户访问机房到源服务器连接的就近机房之间是CF自己的黑盒线路；
-* 使用 CloudFlare 的 Argo 隧道，使用TLS加密通信，可以将应用程序流量安全地传输到Cloudflare网络，提高了应用程序的安全性和可靠性。此外，Argo Tunnel也可以防止IP泄露和DDoS攻击等网络威胁；
-* Argo 是内网穿透的隧道，既 Xray 的 inbound 不对外暴露端口增加安全性，也不用做伪装网浪费资源，还支持 Cloudflare 的全部端口，不会死守443被封，同时服务端输出 Argo Ws 数据流，大大简化数据处理流程，提高响应，tls 由 cf 提供，避免多重 tls；
-* Argo 隧道既支持临时隧道，又支持通过 Token 或者 cloudflared Cli 方式申请的固定域名，直接优选 + 隧道，不需要申请域名证书，并可以在安装后随时转换；
-* 同时支持 Xray 的直连协议: reality vison 和 reality gRPC; 以及 ws 回落分流的 4 种主流协议: vless /  vmess / trojan / shadowsocks + WSS (ws + tls)；
-* 内置 warp 链式代理解锁 chatGPT；
-* 节点信息输出到 V2rayN / Clash Meta / 小火箭 / Nekobox / Sing-box (SFI, SFA, SFM)，订阅自动适配客户端，一个订阅 url 走天下；
-* 极速安装，即可交互式安装，也可像 docker compose 一样的非交互式安装，提前把所有的参数放到一个配置文件，全程不到5秒。
+一句话：**一条命令，在任意 Linux VPS 上部署 Xray，支持 12 种协议自由组合、Argo 隧道与直连两种形态、5 大客户端订阅自动适配，安装全程不到 5 秒。**
+
+### 一、架构与安全
+
+* **Argo 隧道不暴露源站**：Xray inbound 只对隧道定向监听，公网不开放任何代理端口，源站 IP 不出现在客户端配置中——天然规避 IP 泄露与 DDoS 直打；隧道走 Cloudflare 全端口，不必死守 443 被封；
+* **双机房就近回源**：不同于普通 CF 回源只走一条固定链路，Argo 会为每条连接建立指向两个就近机房的反向链路，用户侧与回源侧都走 CF 自有骨干，绕开第三方跨境拥塞；
+* **TLS 单层终结**：服务端只输出标准 WS / XHTTP 数据流，TLS 全部由 Cloudflare 终结，避免多层 TLS 叠加，省 CPU、省握手；
+* **零伪装站**：不套一层假网页消耗内存与带宽，纯粹转发数据流；
+* **无需域名与证书**：直接「优选地址 + 隧道」，不用申请域名和证书。临时隧道与固定域名隧道（Token / cloudflared CLI / Cloudflare API 三种申请方式）可随时互转，安装后 `argox -t` 一键切换；
+* **自签证书自动托管**：Hysteria2、Trojan Direct、XHTTP HTTP/3 Direct 使用自签证书直连，更换 TLS 域名时自动重新签发并同步客户端指纹。
+
+### 二、协议矩阵（12 选 N）
+
+安装时按需多选，安装后 `argox -r` 随时增删，端口与 Nginx 分流规则自动同步，无需重装。
+
+| # | 协议 | 传输层 | 安全层 | 出站形态 |
+| --- | --- | --- | --- | --- |
+| 1 | VLESS + Reality Vision | TCP | Reality | 直连 |
+| 2 | Hysteria2 | UDP | 自签证书 | 直连（可选端口跳跃） |
+| 2 | └ Realm 模式 | UDP | 自签证书 | 直连 + 公共牵线服务器打洞 |
+| 3 | VLESS + Reality gRPC | gRPC | Reality | 直连 |
+| 4 | VLESS + WS | WS | Cloudflare | 隧道 / 优选 |
+| 5 | VMess + WS | WS | Cloudflare | 隧道 / 优选 |
+| 6 | Trojan + WS | WS | Cloudflare | 隧道 / 优选 |
+| 7 | Shadowsocks + WS | WS | Cloudflare | 隧道 / 优选 |
+| 8 | VLESS + XHTTP HTTP/1.1 CDN | XHTTP | Cloudflare | 隧道 / 优选 |
+| 9 | VLESS + XHTTP HTTP/2 Reality | XHTTP/H2 | Reality | 直连 |
+| 10 | VLESS + XHTTP HTTP/3 Direct | XHTTP/H3 | 自签证书 | 直连 |
+| 11 | Trojan Direct | TCP | 自签证书 | 直连 |
+| 12 | Shadowsocks 2022 Direct | TCP/UDP | 协议原生加密 | 直连 |
+
+> 第 4–8 项走 Argo 隧道 / CDN：Xray 只监听 `127.0.0.1`，由 Nginx 按路径统一分流后再交由 cloudflared 转发，源站不暴露端口；其余为直连，由 Nginx 按各自模式处理，可与隧道协议同时在线。
+
+### 三、精细化控制
+
+* **Hysteria2 Realm 模式**：通过公共牵线服务器完成 NAT 打洞，专为 NAT VPS 场景设计，显著提升 UDP 穿透性能；Realm 与端口跳跃**互斥**，二者只能二选一；
+* **Hysteria2 端口跳跃**：独立于 Realm 的可选功能，指定范围后客户端自动跳跃，规避端口扫描与封锁，同时自动下发防火墙 NAT 规则；
+* **自定义 WARP 出站路由**：支持域名后缀匹配或 geosite 分类两种规则类型，可分别路由到 warp-IPv4 / warp-IPv6 出站；内置 WARP 链式代理一键解锁 ChatGPT；
+* **绑定出口网卡**：多网卡服务器可指定 Xray 流量从指定接口（如 eth0 / eth1）出站，适配复杂网络拓扑；
+* **客户端指纹自定义**：Reality / WS 等协议可指定 TLS 客户端指纹（Chrome、Firefox 等），增强抗审查能力；
+* **各协议独立端口**：`argox -d` 可改起始端口（按序占用）或为各协议指定非连续独立端口，变更自动同步 Nginx 反代并热加载；
+* **服务器地址支持域名**：NAT VPS 公网 IP 每日变化时，安装或 `-d` 修改均可直接填 DDNS 域名，无需每天重下发客户端；
+* **零中断热加载**：基于 Xray API 的热更新通道，路由规则、出站、网卡绑定等变更均不中断现有连接。
+
+### 四、订阅与客户端
+
+* **一个订阅 URL 走天下**：节点信息自动适配 **V2rayN / Clash Meta / 小火箭 / Throne / Sing-box（SFI、SFA、SFM）**，订阅内容按客户端格式自动切换，导入即用；
+* **索引式订阅**：同一域名下按客户端名分路径返回对应格式，并提供独立 proxy provider 订阅文件。
+* **动态订阅**：按请求 Host 实时渲染，直连节点 server 跟随访问地址（IPv4 / IPv6 / 域名 / 固定隧道），一份订阅适配多 IP 机器与 IPv6 地址池，WS / CDN / Argo 节点保持原地址不变；独立开关，关闭后普通订阅照常可用。
+
+### 五、安装与运维
+
+* **三种安装方式**：交互式菜单、极速安装（`-l` / `-k`）、类 docker-compose 的参数文件 / 长参数非交互安装，适合 CI/CD 批量部署；
+* **按需装依赖**：nginx / cloudflared 仅在需要 WS、XHTTP 或订阅时才安装，jq 与 qrencode 直接下二进制，尽量不装系统包；
+* **安装后管理齐全**：`argox -t` 换隧道、`-d` 换优选 / SNI / 节点信息、`-r` 增删协议、`-n` 查节点与实时流量、`-a` / `-x` 开关 Argo 与 Xray、`-b` 升级内核 / BBR / DD、`-v` 同步最新版、`-u` 彻底卸载；
+* **实时流量统计**：通过 Xray stats API 展示 inbound / outbound 上下行数据。
 
 
-## 1、ArgoX for VPS 运行脚本:
+## 交互式运行脚本
 
 ```
 bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh)
 ```
-## 2、梭哈模式【自用】 运行脚本:
+
+  | 参数 | 说明 |
+  | ------ | ------ |
+  | 无参数 | 交互式菜单 |
+  | -c / -C | 强制使用中文 |
+  | -e / -E | 强制使用英文 |
+  | -k / -K | 极速安装（英文）|
+  | -l / -L | 极速安装（中文）|
+  | -n / -N | 查看节点信息 |
+  | -t / -T | 更换 Argo 隧道 |
+  | -d / -D | 更换优选域名 / SNI / 节点信息 |
+  | -r / -R | 增加 / 删除协议 |
+  | -u / -U | 卸载 |
+  | -v / -V | 同步最新版本 |
+  | -b / -B | 升级内核 / BBR / DD |
+  | -a / -A | 开启 / 关闭 Argo |
+  | -x / -X | 开启 / 关闭 Xray |
+  | -f / -F | 非交互安装，后接参数文件路径 |
+
+
+### 交互输入快捷键
+
+| 按键 | 作用 |
+| --- | --- |
+| `←` / `→` | 光标左移 / 右移 |
+| `Home` / `End`，或 `Ctrl+A` / `Ctrl+E` | 跳到行首 / 行尾 |
+| `Backspace` / `Delete` | 删除光标前 / 后一个字符 |
+| `Ctrl+U` | 删除**光标到行首**的内容（光标在行尾时等同于清空当前行） |
+| `Ctrl+K` | 删除**光标到行尾**的内容 |
+| `Ctrl+W` | 删除光标前的**一个词**（以空格分隔） |
+| `Alt+D` | 删除光标后的**一个词** |
+| `Ctrl+Y` | 粘回最近一次被 `Ctrl+U` / `Ctrl+K` / `Ctrl+W` 删除的内容 |
+| `Ctrl+L` | 清屏并重绘当前行 |
+
+
+## 无交互极速安装
+
+### 中文
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) -l
+```
+
+### 英文
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) -k
+```
+
+
+## 长参数传参安装
+
+支持通过 `--KEY VALUE` 或 `--KEY=VALUE` 形式传参，已传参的变量跳过交互，未传参的变量仍交互询问。适合需要定制部分参数、又不想全程交互的场景。
+
+### 参数说明
+
+| 参数 | 说明 |
+| ---- | ---- |
+| `--LANGUAGE` | c=中文; e=英文 |
+| `--CHOOSE_PROTOCOLS` | 可多选，如 bcef<br> a=全部<br> b=VLESS + Reality Vision<br> c=Hysteria2<br> d=VLESS + Reality gRPC<br> e=VLESS + WS<br> f=VMess + WS<br> g=Trojan + WS<br> h=Shadowsocks + WS<br> i=VLESS + XHTTP HTTP/1.1 CDN<br> j=VLESS + XHTTP HTTP/2 Reality<br> k=VLESS + XHTTP HTTP/3 Direct<br> l=Trojan Direct<br> m=Shadowsocks 2022 Direct |
+| `--START_PORT` | 起始端口，100 - 65520 |
+| `--NGINX_PORT` | Nginx 端口（订阅服务），100 - 65520；n=不需要订阅 |
+| `--SERVER_IP` | 服务器公网 IPv4 或 IPv6 地址 |
+| `--CDN` | 优选 IP 或域名，如 `cf.090227.xyz`；可带端口如 `192.168.1.1:50000` |
+| `--UUID` | 节点 UUID 或密码 |
+| `--WS_PATH` | WebSocket 路径 |
+| `--NODE_NAME` | 节点名称 |
+| `--ARGO_DOMAIN` | Argo 固定隧道域名，不指定则使用临时隧道 |
+| `--ARGO_AUTH` | Argo 认证信息（Json / Token / Cloudflare API），与 `--ARGO_DOMAIN` 一并使用 |
+| `--ARGO` | [true/false] 是否启用 Argo 隧道（安装后可在 -d 菜单调整） |
+| `--SUBSCRIBE` | [true/false/dynamic] 是否启用订阅功能：true=开启（默认）、false=关闭、dynamic=开启并安装后立即开启动态订阅。安装后可在 -d 菜单调整 |
+| `--TLS_SERVER` | TLS SNI 域名 |
+| `--REALITY_PRIVATE` | Reality 私钥 |
+| `--PORT_HOPPING_RANGE` | Hysteria2 端口跳跃范围，如 `50000:51000` |
+| `--HY2_REALM` | [true/false] 是否启用 Hysteria2 Realm（与端口跳跃互斥，同时填写时 Realm 优先） |
+
+### 使用示例
+
+<details>
+    <summary> 最小参数安装（只指定协议，其余交互填写）（点击即可展开或收起）</summary>
+<br>
 
 ```
-curl https://raw.githubusercontent.com/wszx123/ArgoX/main/suoha.sh -o suoha.sh && bash suoha.sh
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) \
+  --LANGUAGE c \
+  --CHOOSE_PROTOCOLS bcef \
+  --SUBSCRIBE dynamic
 ```
-  | Option 参数 | Remark 备注 |
-  | -----------| ------ |
-  | -c         | Chinese 中文 |
-  | -e         | English 英文 |
-  | -a         | Argo on-off Argo 开关 |
-  | -x         | Xray on-off Xray 开关 |
-  | -s         | Change the Argo tunnel 更换 Argo 隧道 |
-  | -f         | Variable file，refer to REPO file "config" 参数文件，可参数项目的文件 config |
-  | -u         | Uninstall 卸载 |
-  | -n         | Export Nodes list 显示节点信息 |
-  | -v         | Sync Argo Xray to the newest 同步 Argo Xray 到最新版本 |
-  | -b         | Upgrade kernel, turn on BBR, change Linux system 升级内核、安装BBR、DD脚本 |
 
+</details>
+
+<details>
+    <summary> 完整定制安装（传了大部分参数，减少交互）（点击即可展开或收起）</summary>
+<br>
+
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) \
+  --LANGUAGE c \
+  --CHOOSE_PROTOCOLS bcef \
+  --START_PORT 8881 \
+  --NGINX_PORT 60000 \
+  --SERVER_IP 123.123.123.123 \
+  --CDN skk.moe \
+  --UUID 20f7fca4-86e5-4ddf-9eed-24142073d197 \
+  --WS_PATH argox \
+  --NODE_NAME argox \
+  --REALITY_PRIVATE UPO3FWlg6YDJbASYi7KIESibPec_K46edTvDPbqEYFk
+```
+
+</details>
+
+<details>
+    <summary> Hysteria2 Realm + 端口跳跃（点击即可展开或收起）</summary>
+<br>
+
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) \
+  --LANGUAGE c \
+  --CHOOSE_PROTOCOLS bc \
+  --START_PORT 8881 \
+  --SERVER_IP 123.123.123.123 \
+  --UUID 20f7fca4-86e5-4ddf-9eed-24142073d197 \
+  --PORT_HOPPING_RANGE 50000:51000 \
+  --HY2_REALM true \
+```
+
+</details>
+
+<details>
+    <summary> 全参数 CI/CD 批量部署（必须传所有必要参数）（点击即可展开或收起）</summary>
+<br>
+
+```
+bash <(wget -qO- https://raw.githubusercontent.com/fscarmen/argox/main/argox.sh) \
+  --LANGUAGE c \
+  --CHOOSE_PROTOCOLS bcef \
+  --START_PORT 8881 \
+  --NGINX_PORT 60000 \
+  --SERVER_IP 123.123.123.123 \
+  --CDN skk.moe \
+  --UUID 20f7fca4-86e5-4ddf-9eed-24142073d197 \
+  --WS_PATH argox \
+  --NODE_NAME argox \
+  --REALITY_PRIVATE UPO3FWlg6YDJbASYi7KIESibPec_K46edTvDPbqEYFk \
+  --ARGO_DOMAIN argox.argo.com \
+  --ARGO_AUTH '{"AccountTag":"9cc9e3e4d8f29d2a02e297f14f20513a","TunnelSecret":"6AYfKBOoNlPiTAuWg64ZwujsNuERpWLm6pPJ2qpN8PM=","TunnelID":"1ac55430-f4dc-47d5-a850-bdce824c4101"}' \
+  --ARGO true \
+  --SUBSCRIBE true \
+  --PORT_HOPPING_RANGE 50000:51000 \
+  --HY2_REALM true \
+```
+
+</details>
 
 
 ## Argo Json 的获取
@@ -112,6 +369,19 @@ curl https://raw.githubusercontent.com/wszx123/ArgoX/main/suoha.sh -o suoha.sh &
 <img width="1155" alt="image" src="https://user-images.githubusercontent.com/92626977/218253971-60f11bbf-9de9-4082-9e46-12cd2aad79a1.png">
 
 
+## 使用 Cloudflare API 自动创建 Argo
+
+1. 访问 https://dash.cloudflare.com/profile/api-tokens
+2. API 令牌 > 创建令牌 > 创建自定义令牌
+3. 添加以下权限:
+   - 帐户 > Cloudflare One连接器: Cloudflared > 编辑
+   - 区域 > DNS > 编辑
+4. 账户资源 > 包括 > 所需账户
+5. 区域资源 > 包括 > 特定区域 > 所需域名
+
+<img width="1366" height="646" alt="image" src="https://github.com/user-attachments/assets/207bfee1-583d-4a28-acfc-1041555ecf35" />
+
+
 ## 各种场景下 xray outbound 和 routing 模板的说明
 
 * 域名分类中包含的各具体域名: https://github.com/v2fly/domain-list-community/blob/master/data
@@ -124,6 +394,7 @@ curl https://raw.githubusercontent.com/wszx123/ArgoX/main/suoha.sh -o suoha.sh &
 | chatGPT 使用链式 warp 代理，不需要本地安装 warp，其余流量走 vps 默认的网络出口 | [warp](https://gitlab.com/fscarmen/warp#通过-warp-解锁-chatgpt-的方法) |
 | 指定流量走本机指定的网络接口，对于双栈能区分 IPv4 或 IPv6，其余流量走 vps 默认的网络出口 | [interface](https://gitlab.com/fscarmen/warp#指定网站分流到-interface-的-xray-配置模板适用于-warp-client-warp-和-warp-warp-go-非全局) |
 | 指定流量走本机指定的socks5代理，对于双栈能区分 IPv4 或 IPv6，其余流量走 vps 默认的网络出口 | [socks5](https://gitlab.com/fscarmen/warp#指定网站分流到-socks5-的-xray-配置模板-适用于-warp-client-proxy-和-wireproxy) |
+| 自定义 WARP 出站路由规则（域名匹配 / geosite + warp-IPv4/warp-IPv6），菜单设置自动写入 `custom_route.json` | [custom_route](https://gitlab.com/fscarmen/warp#通过-warp-解锁-chatgpt-的方法) |
 
 
 ## 主体目录文件及说明
@@ -131,26 +402,60 @@ curl https://raw.githubusercontent.com/wszx123/ArgoX/main/suoha.sh -o suoha.sh &
 ```
 /etc/argox                    # 项目主体目录
 ├── subscribe                 # 订阅文件目录
-│   ├── qr                    # Nekoray / V2rayN 订阅二维码
-│   ├── base64                # Nekoray / V2rayN 订阅文件
+│   ├── v2rayn                # V2rayN 订阅文件
+│   ├── throne                # Throne 订阅文件
 │   ├── clash                 # Clash 订阅文件
-│   ├── clash2                # Clash 订阅文件2
 │   ├── proxies               # Clash proxy provider 订阅文件
 │   ├── shadowrocket          # Shadowrocket 订阅文件
-│   ├── sing-box-pc           # SFM 订阅文件
-│   ├── sing-box-phone        # SFI / SFA 订阅文件
-│   └── sing-box2             # SFI / SFA / SFM 订阅文件2
+│   ├── sing-box              # SFI / SFA / SFM 订阅文件
+│   └── dynamic               # 动态订阅目录（argox -d 开启动态订阅后生成）
+│       ├── render.sh         # CGI 渲染脚本，按请求 Host 实时生成订阅（主脚本现场生成）
+│       ├── fcgiwrap-start    # fcgiwrap 幂等启动脚本
+│       ├── fcgiwrap.sock     # FastCGI 通信 socket
+│       ├── fcgiwrap.pid      # fcgiwrap 进程 PID 文件
+│       ├── meta.env          # 渲染元数据：固定隧道域名 / 公网 WAN4 / WAN6
+│       └── templates         # 只读订阅模板目录（占位符版，动态请求不回写）
+│           ├── proxies       # Clash proxy provider 节点模板
+│           ├── clash         # Clash 完整配置模板
+│           ├── shadowrocket  # ShadowRocket 订阅模板
+│           ├── v2rayn        # V2rayN 订阅模板
+│           ├── throne        # Throne 订阅模板
+│           ├── sing-box      # sing-box 客户端配置模板
+│           └── src           # clash / sing-box 原始模板源文件
+├── cert                      # 自签证书目录
+│   ├── cert.pem              # 证书文件
+│   └── private.key           # 私钥文件
 ├── cloudflared               # argo tunnel 主程序
+├── custom                    # 用户自定义持久化配置文件（serverIp / cdn / language 等）
 ├── geoip.dat                 # 用于根据 IP 地址来进行地理位置策略或访问控制
 ├── geosite.dat               # 用于基于域名或网站分类来进行访问控制、内容过滤或安全策略
-├── inbound.json              # vless / vmess / ss / trojan + WSS 入站配置文件
-├── language                  # 存放脚本语言文件，E 为英文，C 为中文
+├── inbound.json              # 按已选协议动态生成的入站配置文件
+├── custom_route.json         # 用户自定义 WARP 出站路由规则文件（域名 / geosite + warp-IPv4/warp-IPv6）
 ├── list                      # 节点信息列表
+├── nginx.conf                # Nginx 配置文件（安装 WS/XHTTP 协议或启用订阅功能时生成）
 ├── outbound.json             # 出站和路由配置文件，chatGPT 使用 warp ipv6 链式代理出站
 ├── xray                      # xray 主程序
-├── nginx.conf                # Nginx 配置文件
-└── ax.sh                     # 快捷方式脚本文件
+├── ax.sh                     # 快捷方式脚本文件
+├── jq                        # 命令行 JSON 处理器
+└── qrencode                  # QR 码编码二进制文件
 ```
+
+
+## 感谢赞助商
+
+### 感谢 vps.town 对本项目的支持和赞助
+
+<a href="https://vps.town" align="left">
+  <img src="https://vps.town/static/images/sponsor.png" alt="Sponsor" width="30%">
+</a>
+
+体验 VPS.Town 的速度、稳定性和安全性一体化云计算解决方案 - 专为推动您的业务创新而设计。
+
+#### ✨ 服务优势
+
+* 安全的记忆。您值得信赖的伙伴
+
+* 坚如磐石的数据中心。高枕无忧
 
 
 ## 免责声明:
